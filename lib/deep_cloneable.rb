@@ -10,11 +10,18 @@ class ActiveRecord::Base
       dict = options[:dictionary]
       dict ||= {} if options.delete(:use_dictionary)
 
-      kopy = unless dict
-        dup()
+      # the base object into which to clone (overrides the :dictionary option if present)
+      base = options.delete(:base)
+
+      kopy = if base.nil?
+        if dict.nil?
+          dup()
+        else
+          find_in_dict_or_dup(dict)
+        end # if
       else
-        find_in_dict_or_dup(dict)
-      end
+        base
+      end # if
 
       block.call(self, kopy) if block
 
@@ -89,7 +96,15 @@ class ActiveRecord::Base
       end
 
       return kopy
-    end
+    end # deep_clone()
+
+    # Shortcut for deep_clone(:base => base, ...)
+    def deep_clone_into base, *args, &block
+      # add :base option to options hash
+      args[0] ||= {}
+      args[0] = args[0].merge(:base => base)
+      deep_clone(*args, &block)
+    end # deep_clone_into()
 
   protected
 
